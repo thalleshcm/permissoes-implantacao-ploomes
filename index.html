@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planejador de Implantação Ploomes</title>
+<style>
+  :root{
+    --purple:#5b3df5;
+    --purple-dark:#4a2fd6;
+    --bg:#f4f5f8;
+    --card:#ffffff;
+    --border:#e4e6ee;
+    --text:#20222b;
+    --text-dim:#6b7080;
+    --green:#1f9d55;
+    --orange:#e08a1e;
+    --red:#d64545;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  #app{display:flex;min-height:100vh;}
+  nav.sidebar{width:230px;flex-shrink:0;background:var(--card);border-right:1px solid var(--border);padding:0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;}
+  .project-box{padding:16px 18px;border-bottom:1px solid var(--border);}
+  .project-box .label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-dim);font-weight:700;margin-bottom:4px;}
+  .project-box .empresa{font-size:15px;font-weight:700;color:var(--text);line-height:1.25;}
+  .project-box .projeto{font-size:12.5px;color:var(--text-dim);margin-top:1px;}
+  .project-box .switchbtn{margin-top:10px;font-size:12px;color:var(--purple);background:none;border:none;padding:0;cursor:pointer;font-weight:600;}
+  nav.sidebar .navlist{padding:10px 0;flex:1;overflow-y:auto;}
+  nav.sidebar .navbtn{display:flex;align-items:center;gap:10px;padding:12px 20px;cursor:pointer;color:var(--text-dim);font-size:14px;font-weight:500;border-left:3px solid transparent;}
+  nav.sidebar .navbtn:hover{background:#f8f8fc;}
+  nav.sidebar .navbtn.active{color:var(--purple);border-left-color:var(--purple);background:#f2effe;}
+  main{flex:1;padding:28px 36px;max-width:1150px;}
+  h2.pagetitle{margin:0 0 4px;font-size:22px;}
+  p.pagesub{margin:0 0 24px;color:var(--text-dim);font-size:14px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+  .field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;}
+  .field label{font-size:12px;color:var(--text-dim);font-weight:600;}
+  .field input,.field select{padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;}
+  button{cursor:pointer;font-family:inherit;}
+  .btn-primary{background:var(--purple);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;}
+  .btn-primary:hover{background:var(--purple-dark);}
+  .btn-secondary{background:#fff;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:14px;font-weight:500;}
+  .btn-secondary:hover{border-color:var(--purple);color:var(--purple);}
+  button:disabled{opacity:.45;cursor:not-allowed;}
+  button:disabled:hover{border-color:var(--border);color:var(--text);}
+  .btn-danger{background:#fff;color:var(--red);border:1px solid #f3c9c9;border-radius:8px;padding:6px 10px;font-size:12px;}
+  .btn-ghost{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text-dim);}
+  .btn-ghost:hover{border-color:var(--purple);color:var(--purple);}
+  .list-item{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:#fff;}
+  .list-item .meta{font-size:12px;color:var(--text-dim);margin-top:2px;}
+  .list-item .actions{display:flex;gap:8px;}
+  .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;}
+  .pill{padding:8px 14px;border:1px solid var(--border);border-radius:20px;font-size:13px;font-weight:500;color:var(--text-dim);background:#fff;position:relative;display:flex;align-items:center;gap:6px;}
+  .pill.active{background:var(--purple);color:#fff;border-color:var(--purple);}
+  .pill.active .badge{background:rgba(255,255,255,.25);color:#fff;}
+  .statusdot{display:inline-block;width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .dot-complete{background:var(--green);}
+  .dot-partial{background:var(--orange);}
+  .dot-none{background:#c7c9d4;}
+  .question{padding:16px 0;border-bottom:1px solid var(--border);}
+  .question:last-child{border-bottom:none;}
+  .question .qlabel{font-size:14px;font-weight:600;margin-bottom:2px;}
+  .question .qfriendly{font-size:13px;color:var(--text-dim);margin-bottom:10px;font-style:italic;}
+  .opts{display:flex;flex-direction:column;gap:6px;}
+  .opt{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;cursor:pointer;padding:6px 8px;border-radius:6px;}
+  .opt:hover{background:#f8f8fc;}
+  .opt input{margin-top:3px;}
+  .empty{color:var(--text-dim);font-size:14px;padding:20px 0;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+  select#profileTemplatePick{padding:9px 10px;border:1px solid var(--border);border-radius:8px;}
+  .assumption{background:#fff8e6;border:1px solid #f3dfa0;color:#8a6d1a;font-size:12.5px;padding:10px 14px;border-radius:8px;margin-bottom:18px;}
+  .summary-block{margin-bottom:26px;}
+  .summary-block h3{font-size:16px;border-bottom:2px solid var(--purple);display:inline-block;padding-bottom:4px;margin-bottom:12px;}
+  .summary-team{margin-bottom:10px;}
+  .summary-cat{margin-bottom:14px;}
+  .summary-cat h4{font-size:13px;color:var(--purple);margin:0 0 6px;}
+  .summary-q{font-size:13px;margin-bottom:3px;}
+  .summary-q b{font-weight:600;}
+  .val-sim{color:var(--green);font-weight:700;}
+  .val-nao{color:var(--red);font-weight:700;}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(20,20,30,.4);display:flex;align-items:flex-start;justify-content:center;padding-top:8vh;z-index:50;}
+  .modal{background:#fff;border-radius:var(--radius);padding:22px;width:420px;max-width:92vw;max-height:78vh;overflow-y:auto;}
+  .modal h3{margin-top:0;}
+  .proj-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer;}
+  .proj-item:hover{border-color:var(--purple);}
+  .proj-item.current{border-color:var(--purple);background:#f2effe;}
+  .proj-item .pname{font-weight:600;font-size:14px;}
+  .proj-item .psub{font-size:12px;color:var(--text-dim);}
+  .setup-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;width:100%;}
+  .setup-card{background:#fff;border-radius:14px;padding:36px;width:440px;max-width:92vw;box-shadow:0 10px 40px rgba(30,20,80,.08);}
+  .setup-card h2{margin-top:0;color:var(--purple);}
+  table.matrix{border-collapse:collapse;width:100%;font-size:12.5px;}
+  table.matrix th,table.matrix td{border:1px solid var(--border);padding:7px 10px;text-align:left;white-space:nowrap;}
+  table.matrix th{background:#f8f8fc;position:sticky;top:0;}
+  table.matrix td.catrow{background:#f2effe;font-weight:700;color:var(--purple);}
+  table.matrix .qcol{position:sticky;left:0;background:#fff;max-width:260px;white-space:normal;}
+  table.matrix td.catrow .qcol{background:#f2effe;}
+  .matrix-wrap{overflow:auto;max-height:70vh;border:1px solid var(--border);border-radius:8px;}
+  @media print{
+    nav.sidebar,.toolbar,.no-print{display:none !important;}
+    main{max-width:100%;padding:0;}
+    body{background:#fff;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main id="main"></main>
+</div>
+<div id="modalRoot"></div>
+
+<script>
+/* ---------------- STORAGE / MIGRATION ---------------- */
+const STORAGE_KEY = "ploomesImplantacaoV2";
+const OLD_KEY = "ploomesImplantacaoV1";
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+function todayStr(){ return new Date().toLocaleDateString("pt-BR"); }
+
+function blankProject(empresa, projeto){
+  return { id:uid(), empresa, projeto: projeto||"Implantação", criadoEm: todayStr(),
+    teams:[], users:[], profiles:[], activeProfileId:null, activeCategory: SCHEMA_KEY_FIRST,
+    customUserFields:[], showAddUserField:false, editingUserId:null };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  // migrate from V1 single-project format
+  try{
+    const oldRaw = localStorage.getItem(OLD_KEY);
+    if(oldRaw){
+      const old = JSON.parse(oldRaw);
+      if(old && (old.teams || old.users || old.profiles)){
+        const p = blankProject("Projeto migrado", "Implantação");
+        p.teams = old.teams||[]; p.users = old.users||[]; p.profiles = old.profiles||[];
+        p.activeProfileId = old.activeProfileId||null;
+        p.activeCategory = old.activeCategory||SCHEMA_KEY_FIRST;
+        return { projects:[p], activeProjectId: p.id, activeTab:"perfis", showSwitcher:false };
+      }
+    }
+  }catch(e){}
+  return { projects: [], activeProjectId: null, activeTab: "perfis", showSwitcher:false };
+}
+let state;
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function proj(){
+  const p = state.projects.find(p=>p.id===state.activeProjectId) || null;
+  if(p && !p.customUserFields) p.customUserFields = [];
+  return p;
+}
+
+/* ---------------- PERMISSION SCHEMA (verbatim from Ploomes forms) ---------------- */
+const VIS_EDIT_EXCLUDE = ["Todos","Sob sua responsabilidade/colaboração ou sob responsabilidade de membros da sua equipe","Apenas sob sua responsabilidade/colaboração","Nenhum"];
+const VIS_ONLY = ["Todos","Sob sua responsabilidade/colaboração ou sob responsabilidade de membros da sua equipe","Apenas sob sua responsabilidade/colaboração"];
+const METAS_OPTS = ["Todos","Para si mesmo e membros de suas equipes","Para si mesmo","Nenhum"];
+const SIMNAO = ["Sim","Não"];
+
+const SCHEMA = [
+{key:"clientes", label:"Clientes", questions:[
+  {key:"acesso", label:"Tem acesso ao módulo de clientes?", friendly:"Ele(a) precisa ver a tela de Clientes?", options:SIMNAO},
+  {key:"visualizar", label:"Clientes que pode visualizar", friendly:"Quais clientes ele(a) pode enxergar: só os dele, os da equipe, ou todos da empresa?", options:VIS_ONLY, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"editar", label:"Clientes que pode editar", friendly:"Quais clientes ele(a) pode alterar os dados?", options:VIS_EDIT_EXCLUDE, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"mesclar", label:"Pode mesclar Clientes?", friendly:"Pode juntar dois cadastros duplicados de cliente em um só?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"excluir", label:"Clientes que pode excluir", friendly:"Quais clientes ele(a) pode apagar do sistema?", options:VIS_EDIT_EXCLUDE, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"cadastrarEmpresas", label:"Pode cadastrar novas empresas?", friendly:"Pode criar um novo cliente do tipo empresa?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"cadastrarPessoas", label:"Pode cadastrar novas pessoas?", friendly:"Pode criar um novo cliente do tipo pessoa física?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"acessoProdutosCliente", label:"Tem acesso ao módulo de produtos de cliente?", friendly:"Ele(a) vê os produtos que cada cliente já tem/usa?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"cadastrarProdutosCliente", label:"Pode cadastrar novos produtos de cliente?", friendly:"Pode vincular um novo produto a um cliente?", options:SIMNAO, dependsOn:{key:"acessoProdutosCliente",values:["Sim"]}},
+  {key:"editarProdutosCliente", label:"Pode editar produtos de cliente?", friendly:"Pode alterar os produtos já vinculados a um cliente?", options:SIMNAO, dependsOn:{key:"acessoProdutosCliente",values:["Sim"]}},
+  {key:"excluirProdutosCliente", label:"Pode excluir produtos de cliente?", friendly:"Pode remover um produto vinculado a um cliente?", options:SIMNAO, dependsOn:{key:"acessoProdutosCliente",values:["Sim"]}},
+]},
+{key:"negocios", label:"Negócios", questions:[
+  {key:"acesso", label:"Tem acesso ao módulo de Negócios?", friendly:"Ele(a) trabalha com o funil de negócios/oportunidades?", options:SIMNAO},
+  {key:"visualizar", label:"Negócios que pode visualizar", friendly:"Quais negócios ele(a) pode ver?", options:[...VIS_ONLY,"Se o cliente estiver sob responsabilidade/colaboração"], dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"editar", label:"Negócios que pode editar", friendly:"Quais negócios ele(a) pode alterar?", options:[...VIS_EDIT_EXCLUDE,"Se o cliente estiver sob responsabilidade/colaboração"], dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"excluir", label:"Negócios que pode excluir", friendly:"Quais negócios ele(a) pode apagar?", options:[...VIS_EDIT_EXCLUDE,"Se o cliente estiver sob responsabilidade/colaboração"], dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"criar", label:"Pode criar novos Negócios?", friendly:"Pode abrir uma nova oportunidade/negócio?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"ganharPerder", label:"Pode ganhar e perder Negócios?", friendly:"Pode marcar um negócio como ganho ou perdido?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"reabrir", label:"Pode reabrir Negócios?", friendly:"Pode reabrir um negócio que já foi ganho/perdido?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+]},
+{key:"propostas", label:"Propostas", questions:[
+  {key:"acesso", label:"Tem acesso ao módulo de propostas?", friendly:"Ele(a) gera propostas comerciais?", options:SIMNAO},
+  {key:"cadastrar", label:"Pode cadastrar novas propostas?", friendly:"Pode criar uma proposta nova?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"editar", label:"Pode editar propostas?", friendly:"Pode alterar uma proposta já criada?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"excluir", label:"Pode excluir propostas?", friendly:"Pode apagar uma proposta?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"compartilhar", label:"Pode compartilhar propostas?", friendly:"Pode enviar/compartilhar a proposta com o cliente?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+]},
+{key:"documentos", label:"Documentos", questions:[
+  {key:"acesso", label:"Tem acesso ao módulo de documentos?", friendly:"Ele(a) gera documentos/contratos pelo sistema?", options:SIMNAO},
+  {key:"cadastrar", label:"Pode cadastrar novos documentos?", friendly:"Pode criar um documento novo?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"editar", label:"Pode editar documentos?", friendly:"Pode alterar um documento já criado?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"excluir", label:"Pode excluir documentos?", friendly:"Pode apagar um documento?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"compartilhar", label:"Pode compartilhar documentos", friendly:"Pode enviar/compartilhar o documento?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+]},
+{key:"vendas", label:"Vendas", questions:[
+  {key:"acesso", label:"Tem acesso ao módulo de vendas?", friendly:"Ele(a) trabalha com pedidos/vendas fechadas?", options:SIMNAO},
+  {key:"visualizar", label:"Vendas que pode visualizar", friendly:"Quais vendas ele(a) pode ver?", options:VIS_EDIT_EXCLUDE, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"editar", label:"Vendas que pode editar", friendly:"Quais vendas ele(a) pode alterar?", options:VIS_EDIT_EXCLUDE, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"excluir", label:"Vendas que pode excluir", friendly:"Quais vendas ele(a) pode apagar?", options:VIS_EDIT_EXCLUDE, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"cadastrar", label:"Pode cadastrar novas vendas?", friendly:"Pode registrar uma venda nova?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"compartilhar", label:"Pode compartilhar vendas?", friendly:"Pode compartilhar o registro de uma venda?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+]},
+{key:"produtos", label:"Produtos", questions:[
+  {key:"acesso", label:"Tem acesso ao módulo de produtos?", friendly:"Ele(a) mexe no catálogo de produtos?", options:SIMNAO},
+  {key:"cadastrar", label:"Pode cadastrar novos produtos, grupos e famílias de produto?", friendly:"Pode criar produtos/grupos/famílias novos?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"editar", label:"Pode editar produtos, grupos e famílias de produto?", friendly:"Pode alterar produtos/grupos/famílias existentes?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"excluir", label:"Pode excluir produtos, grupos e famílias de produto?", friendly:"Pode apagar produtos/grupos/famílias?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+]},
+{key:"usuariosPerm", label:"Usuários", questions:[
+  {key:"visualizarUsuarios", label:"Usuário que pode visualizar", friendly:"Ele(a) vê o cadastro de quais usuários: só o dele, da equipe, ou todos?", options:["Todos","Somente membros da sua equipe","Somente a si"]},
+  {key:"visualizarEquipes", label:"Equipes que pode visualizar", friendly:"Ele(a) vê todas as equipes ou só as dele?", options:["Todos","Somente suas equipes"]},
+  {key:"visualizarHistorico", label:"Históricos de navegação que pode visualizar", friendly:"Ele(a) vê o histórico de acesso de quem?", options:["Todos","Somente o seu e de membros de sua equipe","Somente o seu","Nenhum"]},
+  {key:"mensagensMural", label:"Para quem pode enviar mensagens no mural da tela inicial?", friendly:"Ele(a) pode postar avisos para quem no mural?", options:["Ninguém","Somente suas equipes","Todos"]},
+]},
+{key:"metas", label:"Metas", questions:[
+  {key:"acesso", label:"Tem acesso ao módulo de metas?", friendly:"Ele(a) acompanha metas dentro do sistema?", options:SIMNAO},
+  {key:"metaClientes", label:"Para quais usuários pode criar metas de clientes?", friendly:"Para quem ele(a) pode definir metas de clientes?", options:METAS_OPTS, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"metaNegociosPropostas", label:"Para quais usuários pode criar metas de Negócio e propostas?", friendly:"Para quem ele(a) pode definir metas de negócios/propostas?", options:METAS_OPTS, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"metaVendas", label:"Para quais usuários pode criar metas de vendas?", friendly:"Para quem ele(a) pode definir metas de vendas?", options:METAS_OPTS, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"metaDocumentos", label:"Para quais usuários pode criar metas de documentos?", friendly:"Para quem ele(a) pode definir metas de documentos?", options:METAS_OPTS, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"metaLeads", label:"Para quais usuários pode criar metas de leads?", friendly:"Para quem ele(a) pode definir metas de leads?", options:METAS_OPTS, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"metaRegistrosInteracao", label:"Para quais usuários pode criar metas de registros de interação?", friendly:"Para quem ele(a) pode definir metas de registros de interação?", options:METAS_OPTS, dependsOn:{key:"acesso",values:["Sim"]}},
+  {key:"metaTarefas", label:"Para quais usuários pode criar metas de tarefas?", friendly:"Para quem ele(a) pode definir metas de tarefas?", options:METAS_OPTS, dependsOn:{key:"acesso",values:["Sim"]}},
+]},
+{key:"campos", label:"Campos", questions:[
+  {key:"cadastrar", label:"Pode cadastrar novos campos?", friendly:"Pode criar campos personalizados novos?", options:SIMNAO},
+  {key:"editar", label:"Pode editar campos?", friendly:"Pode alterar campos personalizados existentes?", options:SIMNAO},
+  {key:"excluir", label:"Pode excluir campos?", friendly:"Pode apagar campos personalizados?", options:SIMNAO},
+]},
+{key:"formulariosExternos", label:"Formulários externos", questions:[
+  {key:"cadastrarCliente", label:"Pode cadastrar formulários externos de cliente?", friendly:"Pode criar um formulário externo para captar clientes (ex: site)?", options:SIMNAO},
+  {key:"cadastrarNegocio", label:"Pode cadastrar formulários externos de Negócio?", friendly:"Pode criar um formulário externo para captar negócios?", options:SIMNAO},
+]},
+{key:"biblioteca", label:"Biblioteca", questions:[
+  {key:"acesso", label:"Tem acesso ao módulo de arquivos?", friendly:"Ele(a) usa a biblioteca de arquivos?", options:SIMNAO},
+  {key:"criarPastasMae", label:"Pode criar pastas-mãe?", friendly:"Pode criar pastas na raiz da biblioteca?", options:SIMNAO, dependsOn:{key:"acesso",values:["Sim"]}},
+]},
+{key:"registrosInteracao", label:"Registros de Interação", questions:[
+  {key:"editarProprios", label:"Pode editar os seus próprios registros de interação?", friendly:"Pode editar as interações que ele(a) mesmo registrou?", options:SIMNAO},
+  {key:"excluirProprios", label:"Pode excluir os seus próprios registros de interação?", friendly:"Pode apagar as interações que ele(a) mesmo registrou?", options:SIMNAO},
+]},
+{key:"outros", label:"Outros", questions:[
+  {key:"acessoTarefas", label:"Tem acesso ao módulo de tarefas?", friendly:"Ele(a) usa a lista de tarefas?", options:SIMNAO},
+  {key:"acessoEmails", label:"Tem acesso ao módulo de e-mails?", friendly:"Ele(a) envia/recebe e-mails pelo sistema?", options:SIMNAO},
+  {key:"visualizarEmails", label:"E-mails que pode visualizar", friendly:"Ele(a) vê os e-mails de todo mundo vinculados ao cliente, ou só os próprios?", options:["Todos os e-mails quando vinculados ao cliente/Negócio","Somente seus e-mails"], dependsOn:{key:"acessoEmails",values:["Sim"]}},
+  {key:"acessoChat", label:"Tem acesso ao módulo de chat?", friendly:"Ele(a) usa o chat interno?", options:SIMNAO},
+  {key:"acessoRelatorios", label:"Tem acesso ao módulo de relatórios?", friendly:"Ele(a) precisa ver relatórios/dashboards?", options:SIMNAO},
+  {key:"visualizarAtividades", label:"Atividades que pode visualizar", friendly:"Ele(a) vê as atividades de todo mundo ou só as dele?", options:["Atividades de todos os usuários","Somente suas atividades"]},
+  {key:"configurarAbas", label:"Pode criar abas, reordenar itens e alterar colunas de abas?", friendly:"Pode personalizar a organização das telas (abas/colunas)?", options:SIMNAO},
+  {key:"configurarMarcadores", label:"Pode configurar marcadores?", friendly:"Pode criar/editar as etiquetas (marcadores) coloridas?", options:SIMNAO},
+  {key:"extrairDados", label:"Pode extrair dados para planilhas Excel ou PowerBI (se a integração estiver ativa)?", friendly:"Pode exportar dados para Excel/PowerBI?", options:SIMNAO},
+  {key:"importarDados", label:"Pode importar dados a partir de planilha Excel?", friendly:"Pode importar uma planilha Excel para dentro do sistema?", options:SIMNAO},
+]},
+];
+const SCHEMA_KEY_FIRST = SCHEMA[0].key;
+const PROFILE_TEMPLATES = ["Administrador","Funcionário","Gestor Geral","Gestor de Equipe","Vendedor","Representante"];
+
+/* ---------------- HELPERS ---------------- */
+// Answers are namespaced "categoryKey__questionKey" because several categories
+// reuse the same question key (e.g. "acesso", "editar", "excluir") — without the
+// namespace, answering one category's question would silently overwrite another's.
+function qKey(catKey, questionKey){ return catKey + "__" + questionKey; }
+function isVisible(q, cat, answers){
+  if(!q.dependsOn) return true;
+  const val = answers[qKey(cat.key, q.dependsOn.key)];
+  return q.dependsOn.values.includes(val);
+}
+function catStatus(cat, answers){
+  let total=0, done=0;
+  cat.questions.forEach(q=>{
+    if(!isVisible(q, cat, answers)) return;
+    total++;
+    if(answers[qKey(cat.key, q.key)]) done++;
+  });
+  return {total, done, dot: done===0 ? "dot-none" : (done<total ? "dot-partial" : "dot-complete")};
+}
+function profileStatus(profile){
+  let total=0, done=0;
+  SCHEMA.forEach(cat=>{
+    cat.questions.forEach(q=>{
+      if(!isVisible(q, cat, profile.answers)) return;
+      total++;
+      if(profile.answers[qKey(cat.key, q.key)]) done++;
+    });
+  });
+  return {total, done, dot: done===0 ? "dot-none" : (done<total ? "dot-partial" : "dot-complete")};
+}
+function esc(s){ return String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function valClass(v){ return v==="Sim" ? "val-sim" : (v==="Não" ? "val-nao" : ""); }
+
+function validateProject(p){
+  const issues = [];
+  if(p.teams.length===0) issues.push("Cadastre pelo menos 1 equipe.");
+  if(p.users.length===0) issues.push("Cadastre pelo menos 1 usuário.");
+  p.profiles.forEach(pf=>{
+    const st = profileStatus(pf);
+    if(st.done<st.total) issues.push(`Perfil "${pf.nome}": ${st.total-st.done} pergunta(s) aplicável(is) ainda sem resposta.`);
+  });
+  return { ok: issues.length===0, issues };
+}
+function renderValidationBanner(v){
+  if(v.ok) return "";
+  return `<div class="assumption" style="background:#fdeaea;border-color:#f3b8b8;color:#a13a3a;">
+    <b>⚠ Pendente antes de exportar/imprimir:</b>
+    <ul style="margin:6px 0 0 18px;padding:0;">${v.issues.map(i=>`<li>${esc(i)}</li>`).join("")}</ul>
+  </div>`;
+}
+
+/* ---------------- RENDER: SIDEBAR ---------------- */
+function renderSidebar(){
+  const p = proj();
+  const sb = document.getElementById("sidebar");
+  if(!p){ sb.innerHTML = `<div class="project-box"><div class="label">Planejador de Implantação</div><div class="empresa">Ploomes</div></div>`; return; }
+  sb.innerHTML = `
+    <div class="project-box">
+      <div class="label">Cliente / Projeto</div>
+      <div class="empresa">${esc(p.empresa)}</div>
+      <div class="projeto">${esc(p.projeto)}</div>
+      <button class="switchbtn" id="switchProjBtn">Trocar projeto ▾</button>
+    </div>
+    <div class="navlist">
+      <div class="navbtn" data-tab="perfis">Perfis / Permissões</div>
+      <div class="navbtn" data-tab="equipes">Equipes</div>
+      <div class="navbtn" data-tab="usuarios">Usuários</div>
+      <div class="navbtn" data-tab="matriz">Matriz de Permissões</div>
+      <div class="navbtn" data-tab="resumo">Resumo / Checklist</div>
+    </div>`;
+  sb.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active", b.dataset.tab===state.activeTab));
+  sb.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>{ state.activeTab=b.dataset.tab; save(); renderAll(); });
+  document.getElementById("switchProjBtn").onclick=()=>{ state.showSwitcher=true; save(); renderModal(); };
+}
+
+/* ---------------- RENDER: PROJECT SETUP / SWITCHER ---------------- */
+function renderSetupScreen(){
+  document.getElementById("sidebar").innerHTML = "";
+  document.getElementById("main").innerHTML = `
+  <div class="setup-wrap">
+    <div class="setup-card">
+      <h2>Novo projeto de implantação</h2>
+      <p style="color:var(--text-dim);font-size:14px;">Informe a empresa e o projeto antes de começar a montar equipes, usuários e perfis.</p>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Nome da empresa (cliente)</label>
+        <input id="setupEmpresa" placeholder="Ex: Metalúrgica Silva Ltda">
+      </div>
+      <div class="field" style="margin-bottom:20px;">
+        <label>Nome do projeto (opcional)</label>
+        <input id="setupProjeto" placeholder="Ex: Implantação CRM - Fase 1">
+      </div>
+      <button class="btn-primary" id="setupCreateBtn" style="width:100%;">Criar projeto</button>
+    </div>
+  </div>`;
+  document.getElementById("setupCreateBtn").onclick=()=>{
+    const empresa = document.getElementById("setupEmpresa").value.trim();
+    if(!empresa){ document.getElementById("setupEmpresa").focus(); return; }
+    const projeto = document.getElementById("setupProjeto").value.trim();
+    const p = blankProject(empresa, projeto);
+    state.projects.push(p);
+    state.activeProjectId = p.id;
+    state.activeTab = "perfis";
+    save(); renderAll();
+  };
+  document.getElementById("setupEmpresa").onkeydown=(e)=>{ if(e.key==="Enter") document.getElementById("setupCreateBtn").click(); };
+}
+
+function renderModal(){
+  const root = document.getElementById("modalRoot");
+  if(!state.showSwitcher){ root.innerHTML=""; return; }
+  let html = `<div class="modal-overlay" id="modalOverlay"><div class="modal">
+    <h3>Projetos</h3>`;
+  state.projects.forEach(p=>{
+    html += `<div class="proj-item ${p.id===state.activeProjectId?'current':''}" data-goto-proj="${p.id}">
+      <div><div class="pname">${esc(p.empresa)}</div><div class="psub">${esc(p.projeto)} · criado em ${esc(p.criadoEm)}</div></div>
+      <button class="btn-danger" data-del-proj="${p.id}">Excluir</button>
+    </div>`;
+  });
+  html += `<button class="btn-primary" id="newProjBtn" style="width:100%;margin-top:8px;">+ Novo projeto</button>
+    <button class="btn-secondary" id="closeModalBtn" style="width:100%;margin-top:8px;">Fechar</button>
+  </div></div>`;
+  root.innerHTML = html;
+  document.getElementById("modalOverlay").onclick=(e)=>{ if(e.target.id==="modalOverlay"){ state.showSwitcher=false; save(); renderModal(); } };
+  document.getElementById("closeModalBtn").onclick=()=>{ state.showSwitcher=false; save(); renderModal(); };
+  document.getElementById("newProjBtn").onclick=()=>{ state.showSwitcher=false; state.activeProjectId=null; save(); renderAll(); };
+  root.querySelectorAll("[data-goto-proj]").forEach(el=>el.onclick=(e)=>{
+    if(e.target.closest("[data-del-proj]")) return;
+    state.activeProjectId = el.dataset.gotoProj;
+    state.showSwitcher=false; state.activeTab="perfis";
+    save(); renderAll();
+  });
+  root.querySelectorAll("[data-del-proj]").forEach(el=>el.onclick=(e)=>{
+    e.stopPropagation();
+    const id = el.dataset.delProj;
+    const target = state.projects.find(pp=>pp.id===id);
+    if(!confirm(`Excluir o projeto "${target.empresa}"? Essa ação não pode ser desfeita.`)) return;
+    state.projects = state.projects.filter(pp=>pp.id!==id);
+    if(state.activeProjectId===id) state.activeProjectId = state.projects[0]?.id || null;
+    save(); renderAll();
+  });
+}
+
+/* ---------------- RENDER: TABS ---------------- */
+function renderEquipes(){
+  const p = proj();
+  const teamOptions = state=> p.teams.map(t=>`<option value="${t.id}">${esc(t.nome)}</option>`).join("");
+  const userOptions = p.users.map(u=>`<option value="${u.id}">${esc(u.nome)}</option>`).join("");
+  let html = `
+  <div class="assumption no-print">⚠️ Os campos desta tela (Equipe: nome, equipe-mãe, gestor, membros) são um <b>rascunho</b> baseado no padrão do Ploomes — confirme e ajuste conforme a tela real do sistema.</div>
+  <h2 class="pagetitle">Equipes</h2>
+  <p class="pagesub">Comece definindo a estrutura de equipes do cliente, incluindo hierarquia (equipes dentro de equipes) e quem é o gestor.</p>
+  <div class="card">
+    <div class="row">
+      <div class="field"><label>Nome da equipe</label><input id="teamNome" placeholder="Ex: Comercial SP"></div>
+      <div class="field"><label>Equipe-mãe (opcional)</label><select id="teamParent"><option value="">Nenhuma (equipe raiz)</option>${teamOptions()}</select></div>
+      <div class="field"><label>Gestor da equipe</label><select id="teamGestor"><option value="">A definir</option>${userOptions}</select></div>
+      <div><button class="btn-primary" id="addTeamBtn">+ Adicionar equipe</button></div>
+    </div>
+  </div>
+  <div id="teamList">`;
+  if(p.teams.length===0) html += `<div class="empty">Nenhuma equipe cadastrada ainda. <b style="color:var(--red);">É obrigatório cadastrar pelo menos 1 equipe.</b></div>`;
+  p.teams.forEach(t=>{
+    const parent = p.teams.find(pp=>pp.id===t.parentId);
+    const gestor = p.users.find(u=>u.id===t.gestorId);
+    const members = p.users.filter(u=>u.teamId===t.id);
+    html += `<div class="list-item">
+      <div>
+        <div><b>${esc(t.nome)}</b></div>
+        <div class="meta">${parent?`Subequipe de ${esc(parent.nome)} · `:""}Gestor: ${gestor?esc(gestor.nome):"a definir"} · ${members.length} membro(s)</div>
+      </div>
+      <div class="actions"><button class="btn-danger" data-del-team="${t.id}">Remover</button></div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderUsuarios(){
+  const p = proj();
+  const teamOptions = p.teams.map(t=>`<option value="${t.id}">${esc(t.nome)}</option>`).join("");
+  const profileOptions = p.profiles.map(pf=>`<option value="${pf.id}">${esc(pf.nome)}</option>`).join("");
+  const editing = p.editingUserId ? p.users.find(u=>u.id===p.editingUserId) : null;
+
+  let html = `
+  <div class="assumption no-print">⚠️ Os campos desta tela (Usuário: nome, e-mail, equipe, perfil) são um <b>rascunho</b> baseado no padrão do Ploomes — confirme e ajuste conforme a tela real do sistema.</div>
+  <h2 class="pagetitle">Usuários</h2>
+  <p class="pagesub">Cadastre as pessoas, vinculando cada uma a uma equipe e a um perfil de permissões. Precisa de mais informação sobre alguém? Adicione um campo personalizado.</p>
+
+  <div class="card">
+    <div class="row" style="align-items:center;margin-bottom:${p.customUserFields.length||p.showAddUserField?'12':'0'}px;">
+      <div style="font-size:12px;color:var(--text-dim);font-weight:600;">CAMPOS PERSONALIZADOS DE USUÁRIO</div>
+    </div>
+    <div class="row" style="align-items:center;gap:8px;">`;
+  p.customUserFields.forEach(f=>{
+    html += `<div class="pill" style="cursor:default;">${esc(f.label)} <span class="btn-danger" data-del-userfield="${f.id}" style="padding:1px 6px;margin-left:2px;">×</span></div>`;
+  });
+  if(!p.showAddUserField){
+    html += `<button class="btn-ghost" id="showAddFieldBtn">+ Adicionar campo</button>`;
+  } else {
+    html += `<input id="newFieldName" placeholder="Ex: Telefone, LinkedIn..." style="max-width:220px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+      <button class="btn-primary" id="confirmAddFieldBtn" style="padding:7px 12px;">Adicionar</button>
+      <button class="btn-secondary" id="cancelAddFieldBtn" style="padding:7px 12px;">Cancelar</button>`;
+  }
+  html += `</div></div>`;
+
+  html += `<div class="card">
+    <div class="row">
+      <div class="field"><label>Nome</label><input id="userNome" placeholder="Ex: Maria Silva" value="${editing?esc(editing.nome):''}"></div>
+      <div class="field"><label>E-mail</label><input id="userEmail" placeholder="maria@empresa.com" value="${editing?esc(editing.email||''):''}"></div>
+      <div class="field"><label>Equipe</label><select id="userTeam"><option value="">Sem equipe</option>${p.teams.map(t=>`<option value="${t.id}" ${editing&&editing.teamId===t.id?'selected':''}>${esc(t.nome)}</option>`).join("")}</select></div>
+      <div class="field"><label>Perfil</label><select id="userProfile"><option value="">Sem perfil definido</option>${p.profiles.map(pf=>`<option value="${pf.id}" ${editing&&editing.profileId===pf.id?'selected':''}>${esc(pf.nome)}</option>`).join("")}</select></div>
+    </div>`;
+  if(p.customUserFields.length>0){
+    html += `<div class="row" style="margin-top:10px;">`;
+    p.customUserFields.forEach(f=>{
+      const val = editing ? (editing.custom && editing.custom[f.id]) || "" : "";
+      html += `<div class="field"><label>${esc(f.label)}</label><input data-userfield="${f.id}" value="${esc(val)}"></div>`;
+    });
+    html += `</div>`;
+  }
+  html += `<div class="row" style="margin-top:14px;">
+      <button class="btn-primary" id="addUserBtn">${editing?'Salvar alterações':'+ Adicionar usuário'}</button>
+      ${editing?'<button class="btn-secondary" id="cancelEditUserBtn">Cancelar edição</button>':''}
+    </div>
+  </div>`;
+
+  html += `<div id="userList">`;
+  if(p.users.length===0) html += `<div class="empty">Nenhum usuário cadastrado ainda. <b style="color:var(--red);">É obrigatório cadastrar pelo menos 1 usuário.</b></div>`;
+  p.users.forEach(u=>{
+    const team = p.teams.find(t=>t.id===u.teamId);
+    const profile = p.profiles.find(pf=>pf.id===u.profileId);
+    const customBits = p.customUserFields.filter(f=>u.custom && u.custom[f.id]).map(f=>`${esc(f.label)}: ${esc(u.custom[f.id])}`);
+    html += `<div class="list-item">
+      <div>
+        <div><b>${esc(u.nome)}</b></div>
+        <div class="meta">${esc(u.email||"sem e-mail")} · Equipe: ${team?esc(team.nome):"—"} · Perfil: ${profile?esc(profile.nome):"—"}${customBits.length?" · "+customBits.join(" · "):""}</div>
+      </div>
+      <div class="actions"><button class="btn-secondary" data-edit-user="${u.id}" style="padding:6px 10px;font-size:12px;">Editar</button><button class="btn-danger" data-del-user="${u.id}">Remover</button></div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderPerfis(){
+  const p = proj();
+  let html = `
+  <h2 class="pagetitle">Perfis / Permissões</h2>
+  <p class="pagesub">Estas perguntas e opções são exatamente as do formulário de Perfil do Ploomes. A frase em itálico é a versão para explicar ao cliente.</p>
+  <div class="toolbar no-print" style="margin-bottom:18px;">
+    <select id="profileTemplatePick"><option value="">Novo perfil em branco...</option>${PROFILE_TEMPLATES.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join("")}</select>
+    <button class="btn-primary" id="addProfileBtn">+ Criar perfil</button>
+  </div>
+  <div id="profileList" class="pill-row no-print">`;
+  if(p.profiles.length===0) html += `<div class="empty">Nenhum perfil criado ainda.</div>`;
+  p.profiles.forEach(pf=>{
+    const st = profileStatus(pf);
+    html += `<div class="pill ${pf.id===p.activeProfileId?'active':''}" data-select-profile="${pf.id}" style="cursor:pointer;">
+      <span class="statusdot ${st.dot}" title="${st.done}/${st.total} respondidas"></span>
+      ${esc(pf.nome)}
+      <span class="btn-ghost" data-dup-profile="${pf.id}" title="Duplicar perfil">⧉</span>
+      <span class="btn-danger" data-del-profile="${pf.id}" style="padding:1px 6px;">×</span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  const profile = p.profiles.find(pf=>pf.id===p.activeProfileId);
+  if(!profile){
+    html += `<div class="empty">Selecione ou crie um perfil acima para começar a responder as perguntas.</div>`;
+    return html;
+  }
+
+  html += `<div class="card">
+    <div class="field" style="max-width:320px;">
+      <label>Nome do perfil</label>
+      <input id="profileNameInput" value="${esc(profile.nome)}">
+    </div>
+  </div>`;
+
+  html += `<div class="pill-row no-print">`;
+  SCHEMA.forEach(cat=>{
+    const st = catStatus(cat, profile.answers);
+    html += `<div class="pill ${cat.key===p.activeCategory?'active':''}" data-select-cat="${cat.key}" style="cursor:pointer;">
+      <span class="statusdot ${st.dot}"></span>${esc(cat.label)} <span style="opacity:.7;font-size:11px;">${st.done}/${st.total}</span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  const cat = SCHEMA.find(c=>c.key===p.activeCategory) || SCHEMA[0];
+  html += `<div class="card"><h3 style="margin-top:0;">${esc(cat.label)}</h3>`;
+  cat.questions.forEach(q=>{
+    if(!isVisible(q, cat, profile.answers)) return;
+    const current = profile.answers[qKey(cat.key, q.key)];
+    html += `<div class="question">
+      <div class="qlabel">${esc(q.label)}</div>
+      <div class="qfriendly">"${esc(q.friendly)}"</div>
+      <div class="opts">`;
+    q.options.forEach(opt=>{
+      html += `<label class="opt"><input type="radio" name="${cat.key}__${q.key}" value="${esc(opt)}" data-cat="${cat.key}" data-q="${q.key}" ${current===opt?'checked':''}> ${esc(opt)}</label>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+function renderMatriz(){
+  const p = proj();
+  const v = validateProject(p);
+  let html = `
+  <div class="topbar">
+    <div>
+      <h2 class="pagetitle" style="margin-bottom:0;">Matriz de Permissões</h2>
+      <p class="pagesub">Comparação lado a lado de todos os perfis. Use para revisar ou explicar diferenças ao cliente.</p>
+    </div>
+    <div class="toolbar no-print">
+      <button class="btn-secondary" id="exportCsvBtn" ${v.ok?'':'disabled title="Resolva as pendências listadas acima antes de exportar"'}>Exportar tudo (Excel/CSV)</button>
+    </div>
+  </div>
+  ${renderValidationBanner(v)}`;
+  if(p.profiles.length===0){ html += `<div class="empty">Crie ao menos um perfil na aba "Perfis / Permissões" para ver a matriz.</div>`; return html; }
+
+  html += `<div class="matrix-wrap"><table class="matrix"><thead><tr><th class="qcol">Pergunta</th>`;
+  p.profiles.forEach(pf=> html += `<th>${esc(pf.nome)}</th>`);
+  html += `</tr></thead><tbody>`;
+  SCHEMA.forEach(cat=>{
+    html += `<tr><td class="catrow qcol" colspan="${p.profiles.length+1}">${esc(cat.label)}</td></tr>`;
+    cat.questions.forEach(q=>{
+      html += `<tr><td class="qcol">${esc(q.label)}</td>`;
+      p.profiles.forEach(pf=>{
+        let cell;
+        const ans = pf.answers[qKey(cat.key, q.key)];
+        if(!isVisible(q, cat, pf.answers)) cell = `<span style="color:#c7c9d4;">–</span>`;
+        else if(ans) cell = `<span class="${valClass(ans)}">${esc(ans)}</span>`;
+        else cell = `<span style="color:var(--orange);">(pendente)</span>`;
+        html += `<td>${cell}</td>`;
+      });
+      html += `</tr>`;
+    });
+  });
+  html += `</tbody></table></div>`;
+  return html;
+}
+
+function renderResumo(){
+  const p = proj();
+  const v = validateProject(p);
+  let html = `
+  <div class="topbar">
+    <div>
+      <h2 class="pagetitle" style="margin-bottom:0;">Resumo / Checklist</h2>
+      <p class="pagesub">Use isto como roteiro para transcrever a configuração dentro do Ploomes.</p>
+    </div>
+    <div class="toolbar no-print">
+      <button class="btn-secondary" id="printBtn" ${v.ok?'':'disabled title="Resolva as pendências listadas acima antes de imprimir"'}>Imprimir / PDF</button>
+      <button class="btn-secondary" id="exportCsvBtnResumo" ${v.ok?'':'disabled title="Resolva as pendências listadas acima antes de exportar"'}>Exportar tudo (Excel/CSV)</button>
+      <button class="btn-secondary" id="exportBtn" ${v.ok?'':'disabled title="Resolva as pendências listadas acima antes de exportar"'}>Exportar backup (JSON)</button>
+      <button class="btn-secondary" id="importBtn">Importar backup</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+    </div>
+  </div>
+  ${renderValidationBanner(v)}
+  <h1 style="font-size:19px;margin-bottom:2px;">${esc(p.empresa)}</h1>
+  <p style="color:var(--text-dim);font-size:13px;margin-top:0;">${esc(p.projeto)} · gerado em ${todayStr()}</p>`;
+
+  html += `<div class="summary-block"><h3>Equipes</h3>`;
+  if(p.teams.length===0) html += `<div class="empty">Nenhuma equipe cadastrada.</div>`;
+  p.teams.forEach(t=>{
+    const parent = p.teams.find(pp=>pp.id===t.parentId);
+    const gestor = p.users.find(u=>u.id===t.gestorId);
+    const members = p.users.filter(u=>u.teamId===t.id);
+    html += `<div class="summary-team summary-q"><b>${esc(t.nome)}</b>${parent?` (subequipe de ${esc(parent.nome)})`:""} — Gestor: ${gestor?esc(gestor.nome):"a definir"} — Membros: ${members.map(m=>esc(m.nome)).join(", ")||"nenhum"}</div>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="summary-block"><h3>Usuários</h3>`;
+  if(p.users.length===0) html += `<div class="empty">Nenhum usuário cadastrado.</div>`;
+  p.users.forEach(u=>{
+    const team = p.teams.find(t=>t.id===u.teamId);
+    const profile = p.profiles.find(pf=>pf.id===u.profileId);
+    html += `<div class="summary-q"><b>${esc(u.nome)}</b> (${esc(u.email||"sem e-mail")}) — Equipe: ${team?esc(team.nome):"—"} — Perfil: ${profile?esc(profile.nome):"—"}</div>`;
+  });
+  html += `</div>`;
+
+  html += `<div class="summary-block"><h3>Perfis</h3>`;
+  if(p.profiles.length===0) html += `<div class="empty">Nenhum perfil cadastrado.</div>`;
+  p.profiles.forEach(pf=>{
+    const st = profileStatus(pf);
+    html += `<div style="margin-bottom:20px;"><div style="font-weight:700;font-size:15px;margin-bottom:8px;">${esc(pf.nome)} ${st.done<st.total?`<span style="color:var(--orange);font-size:12px;font-weight:600;">(${st.total-st.done} pergunta(s) pendente(s))</span>`:''}</div>`;
+    SCHEMA.forEach(cat=>{
+      const rows = cat.questions.filter(q=>isVisible(q,cat,pf.answers) && pf.answers[qKey(cat.key,q.key)]);
+      if(rows.length===0) return;
+      html += `<div class="summary-cat"><h4>${esc(cat.label)}</h4>`;
+      rows.forEach(q=>{
+        const ans = pf.answers[qKey(cat.key,q.key)];
+        html += `<div class="summary-q">${esc(q.label)}: <b class="${valClass(ans)}">${esc(ans)}</b></div>`;
+      });
+      html += `</div>`;
+    });
+    html += `</div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+/* ---------------- CSV EXPORT ---------------- */
+function csvEscape(v){
+  const s = String(v??"");
+  if(/[",\n;]/.test(s)) return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function buildExportRows(p){
+  const rows = [];
+
+  rows.push(["EQUIPES"]);
+  rows.push(["Nome","Equipe-mãe","Gestor","Membros"]);
+  p.teams.forEach(t=>{
+    const parent = p.teams.find(pp=>pp.id===t.parentId);
+    const gestor = p.users.find(u=>u.id===t.gestorId);
+    const members = p.users.filter(u=>u.teamId===t.id).map(m=>m.nome).join(", ");
+    rows.push([t.nome, parent?parent.nome:"", gestor?gestor.nome:"", members]);
+  });
+
+  rows.push([]);
+  rows.push(["USUÁRIOS"]);
+  const fieldLabels = p.customUserFields.map(f=>f.label);
+  rows.push(["Nome","E-mail","Equipe","Perfil", ...fieldLabels]);
+  p.users.forEach(u=>{
+    const team = p.teams.find(t=>t.id===u.teamId);
+    const profile = p.profiles.find(pf=>pf.id===u.profileId);
+    const fieldVals = p.customUserFields.map(f=>(u.custom && u.custom[f.id]) || "");
+    rows.push([u.nome, u.email||"", team?team.nome:"", profile?profile.nome:"", ...fieldVals]);
+  });
+
+  rows.push([]);
+  rows.push(["PERFIS / PERMISSÕES"]);
+  rows.push(["Categoria","Pergunta", ...p.profiles.map(pf=>pf.nome)]);
+  SCHEMA.forEach(cat=>{
+    cat.questions.forEach(q=>{
+      const row = [cat.label, q.label];
+      p.profiles.forEach(pf=>{
+        if(!isVisible(q, cat, pf.answers)) row.push("–");
+        else row.push(pf.answers[qKey(cat.key,q.key)] || "(pendente)");
+      });
+      rows.push(row);
+    });
+  });
+
+  return rows;
+}
+function exportFullCsv(){
+  const p = proj();
+  const rows = buildExportRows(p);
+  const csv = "﻿" + rows.map(r=>r.map(csvEscape).join(";")).join("\r\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${p.empresa.replace(/[^a-z0-9]+/gi,"-")}-implantacao-completa.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ---------------- MAIN RENDER + HANDLERS ---------------- */
+function renderAll(){
+  if(!proj()){ renderSetupScreen(); renderModal(); return; }
+  renderSidebar();
+  const main = document.getElementById("main");
+  if(state.activeTab==="equipes") main.innerHTML = renderEquipes();
+  else if(state.activeTab==="usuarios") main.innerHTML = renderUsuarios();
+  else if(state.activeTab==="perfis") main.innerHTML = renderPerfis();
+  else if(state.activeTab==="matriz") main.innerHTML = renderMatriz();
+  else if(state.activeTab==="resumo") main.innerHTML = renderResumo();
+  attachHandlers();
+  renderModal();
+}
+
+function attachHandlers(){
+  const p = proj();
+  if(!p) return;
+
+  // Equipes
+  const addTeamBtn = document.getElementById("addTeamBtn");
+  if(addTeamBtn){
+    const submit = ()=>{
+      const nome = document.getElementById("teamNome").value.trim();
+      if(!nome) return;
+      p.teams.push({id:uid(), nome, parentId: document.getElementById("teamParent").value||null, gestorId: document.getElementById("teamGestor").value||null});
+      save(); renderAll();
+    };
+    addTeamBtn.onclick = submit;
+    document.getElementById("teamNome").onkeydown=(e)=>{ if(e.key==="Enter") submit(); };
+  }
+  document.querySelectorAll("[data-del-team]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.delTeam;
+    const t = p.teams.find(x=>x.id===id);
+    if(!confirm(`Remover a equipe "${t.nome}"?`)) return;
+    p.teams = p.teams.filter(x=>x.id!==id);
+    p.users.forEach(u=>{ if(u.teamId===id) u.teamId=null; });
+    save(); renderAll();
+  });
+
+  // Usuarios — campos personalizados
+  const showAddFieldBtn = document.getElementById("showAddFieldBtn");
+  if(showAddFieldBtn) showAddFieldBtn.onclick=()=>{ p.showAddUserField=true; save(); renderAll(); setTimeout(()=>document.getElementById("newFieldName")?.focus(),0); };
+  const cancelAddFieldBtn = document.getElementById("cancelAddFieldBtn");
+  if(cancelAddFieldBtn) cancelAddFieldBtn.onclick=()=>{ p.showAddUserField=false; save(); renderAll(); };
+  const confirmAddFieldBtn = document.getElementById("confirmAddFieldBtn");
+  if(confirmAddFieldBtn){
+    const submitField = ()=>{
+      const label = document.getElementById("newFieldName").value.trim();
+      if(!label) return;
+      p.customUserFields.push({id:uid(), label});
+      p.showAddUserField = false;
+      save(); renderAll();
+    };
+    confirmAddFieldBtn.onclick = submitField;
+    document.getElementById("newFieldName").onkeydown=(e)=>{ if(e.key==="Enter") submitField(); if(e.key==="Escape"){ p.showAddUserField=false; save(); renderAll(); } };
+  }
+  document.querySelectorAll("[data-del-userfield]").forEach(b=>b.onclick=()=>{
+    const id = b.dataset.delUserfield;
+    const f = p.customUserFields.find(x=>x.id===id);
+    if(!confirm(`Remover o campo "${f.label}"? Os valores preenchidos para esse campo em todos os usuários serão perdidos.`)) return;
+    p.customUserFields = p.customUserFields.filter(x=>x.id!==id);
+    p.users.forEach(u=>{ if(u.custom) delete u.custom[id]; });
+    save(); renderAll();
+  });
+
+  // Usuarios — criar / editar
+  const addUserBtn = document.getElementById("addUserBtn");
+  if(addUserBtn){
+    const submit = ()=>{
+      const nome = document.getElementById("userNome").value.trim();
+      if(!nome) return;
+      const custom = {};
+      document.querySelectorAll("[data-userfield]").forEach(el=>{ custom[el.dataset.userfield] = el.value.trim(); });
+      const payload = { nome, email:document.getElementById("userEmail").value.trim(), teamId:document.getElementById("userTeam").value||null, profileId:document.getElementById("userProfile").value||null, custom };
+      if(p.editingUserId){
+        const u = p.users.find(x=>x.id===p.editingUserId);
+        Object.assign(u, payload);
+        p.editingUserId = null;
+      } else {
+        p.users.push({id:uid(), ...payload});
+      }
+      save(); renderAll();
+    };
+    addUserBtn.onclick = submit;
+    document.getElementById("userNome").onkeydown=(e)=>{ if(e.key==="Enter") submit(); };
+  }
+  const cancelEditUserBtn = document.getElementById("cancelEditUserBtn");
+  if(cancelEditUserBtn) cancelEditUserBtn.onclick=()=>{ p.editingUserId=null; save(); renderAll(); };
+  document.querySelectorAll("[data-edit-user]").forEach(b=>b.onclick=()=>{
+    p.editingUserId = b.dataset.editUser;
+    save(); renderAll();
+    document.getElementById("userNome")?.scrollIntoView({behavior:"smooth", block:"center"});
+  });
+  document.querySelectorAll("[data-del-user]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.delUser;
+    const u = p.users.find(x=>x.id===id);
+    if(!confirm(`Remover o usuário "${u.nome}"?`)) return;
+    p.users = p.users.filter(x=>x.id!==id);
+    if(p.editingUserId===id) p.editingUserId=null;
+    save(); renderAll();
+  });
+
+  // Perfis
+  const addProfileBtn = document.getElementById("addProfileBtn");
+  if(addProfileBtn) addProfileBtn.onclick=()=>{
+    const pick = document.getElementById("profileTemplatePick").value;
+    const nome = pick || "Novo Perfil";
+    const pf = {id:uid(), nome, answers:{}};
+    p.profiles.push(pf);
+    p.activeProfileId = pf.id;
+    p.activeCategory = SCHEMA[0].key;
+    save(); renderAll();
+  };
+  document.querySelectorAll("[data-select-profile]").forEach(el=>el.onclick=(e)=>{
+    if(e.target.closest("[data-dup-profile]") || e.target.closest("[data-del-profile]")) return;
+    p.activeProfileId = el.dataset.selectProfile;
+    save(); renderAll();
+  });
+  document.querySelectorAll("[data-dup-profile]").forEach(el=>el.onclick=(e)=>{
+    e.stopPropagation();
+    const id = el.dataset.dupProfile;
+    const orig = p.profiles.find(pf=>pf.id===id);
+    const copy = {id:uid(), nome: orig.nome + " (cópia)", answers: {...orig.answers}};
+    p.profiles.push(copy);
+    p.activeProfileId = copy.id;
+    save(); renderAll();
+  });
+  document.querySelectorAll("[data-del-profile]").forEach(el=>el.onclick=(e)=>{
+    e.stopPropagation();
+    const id = el.dataset.delProfile;
+    const pf = p.profiles.find(x=>x.id===id);
+    if(!confirm(`Excluir o perfil "${pf.nome}"?`)) return;
+    p.profiles = p.profiles.filter(x=>x.id!==id);
+    if(p.activeProfileId===id) p.activeProfileId=null;
+    p.users.forEach(u=>{ if(u.profileId===id) u.profileId=null; });
+    save(); renderAll();
+  });
+  const profileNameInput = document.getElementById("profileNameInput");
+  if(profileNameInput) profileNameInput.onchange=()=>{
+    const pf = p.profiles.find(x=>x.id===p.activeProfileId);
+    if(pf){ pf.nome = profileNameInput.value.trim()||pf.nome; save(); renderAll(); }
+  };
+  document.querySelectorAll("[data-select-cat]").forEach(el=>el.onclick=()=>{
+    p.activeCategory = el.dataset.selectCat;
+    save(); renderAll();
+  });
+  document.querySelectorAll('input[type=radio][data-q]').forEach(el=>el.onchange=()=>{
+    const pf = p.profiles.find(x=>x.id===p.activeProfileId);
+    if(!pf) return;
+    pf.answers[qKey(el.dataset.cat, el.dataset.q)] = el.value;
+    save(); renderAll();
+  });
+
+  // Matriz
+  const exportCsvBtn = document.getElementById("exportCsvBtn");
+  if(exportCsvBtn) exportCsvBtn.onclick = ()=>{ if(!validateProject(p).ok) return; exportFullCsv(); };
+
+  // Resumo
+  const printBtn = document.getElementById("printBtn");
+  if(printBtn) printBtn.onclick=()=>{ if(!validateProject(p).ok) return; window.print(); };
+  const exportCsvBtnResumo = document.getElementById("exportCsvBtnResumo");
+  if(exportCsvBtnResumo) exportCsvBtnResumo.onclick = ()=>{ if(!validateProject(p).ok) return; exportFullCsv(); };
+  const exportBtn = document.getElementById("exportBtn");
+  if(exportBtn) exportBtn.onclick=()=>{
+    if(!validateProject(p).ok) return;
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${p.empresa.replace(/[^a-z0-9]+/gi,"-")}-backup.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+  const importBtn = document.getElementById("importBtn");
+  const importFile = document.getElementById("importFile");
+  if(importBtn) importBtn.onclick=()=>importFile.click();
+  if(importFile) importFile.onchange=(e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload=()=>{
+      try{
+        const parsed = JSON.parse(reader.result);
+        if(parsed.projects){ state = parsed; }
+        else if(parsed.teams){ // single-project legacy backup
+          const np = blankProject("Projeto importado","Implantação");
+          np.teams=parsed.teams||[]; np.users=parsed.users||[]; np.profiles=parsed.profiles||[];
+          state.projects.push(np); state.activeProjectId = np.id;
+        }
+        save(); renderAll();
+      }catch(err){ alert("Arquivo inválido."); }
+    };
+    reader.readAsText(file);
+  };
+}
+
+state = loadState();
+renderAll();
+</script>
+</body>
+</html>
